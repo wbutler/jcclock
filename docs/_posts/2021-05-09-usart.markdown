@@ -1,0 +1,32 @@
+---
+layout: post
+title:  "USART Bringup"
+date:   2021-05-09 00:25:00 -700
+categories:
+permalink: /2021-05-09-usart
+---
+I was able to get the USART basically working in transmit mode--like blinking a light, the basic version was super simple and worked pretty much on the first try.
+
+ST's HAL library provides `HAL_UART_Transmit`, which synchronously uses CPU cycles to:
+  1. Move a byte to the peripheral's transmit register.
+  2. Spin the CPU waiting for TX to complete.
+  3. Repeat.
+
+It's super easy and I had it running in a few minutes, sending "Hello World" from my dev board to my PC.
+  
+*But* there are some major drawbacks. First, you're tying up (fast) CPU cycles waiting for (slow) hardware to put bits on the wire. Secondly, receiving will be difficult from a timing perspective, since you're basically polling, needing to continually check for when it's time to send the next byte.
+
+If we take 115200 baud as the lowest minimum transfer rate we might use, it means that we need to check the receive register every 1s/115200 ≈ 8μs and similarly service any transmit in progress on the same interval. All of that would be a substantial complicating requirement on our firmware implementation; we can do better.
+
+STM32 MCU's offer several DMA channels which can move data in the background between buffers and peripherals without expending CPU cycles. [This Github repo and tutorial](https://github.com/MaJerle/stm32-usart-uart-dma-rx-tx#combine-uart--dma-for-data-transmission) was invaluable to me in figuring out how to use the TX DMA. Once things are initialized properly, the flow is:
+
+1. Set up a buffer of data to transmit.
+2. Call `HAL_UART_Transmit_DMA` to begin the transfer.
+3. That function call returns quickly and you can do other work with the CPU.
+4. Receive an interrupt when the transfer is complete.
+
+It's relatively painless to set up the DMA channel properly in the IDE, and as usual, the tooling writes most of the boilerplate for you, *but not all*. Getting the first DMA transfer to work was trivial, but the second and later transfer would fail, claiming the hardware was still busy.
+
+I spent a couple evenings chasing this issue until I found [the eureka StackOverflow post](https://stackoverflow.com/questions/43298708/stm32-implementing-uart-in-dma-mode) and [this ST forum post from 2015](https://community.st.com/s/question/0D50X00009XkhQhSAJ/hal-uart-transfer-with-dma-keeps-busy) calling out that I needed to add [this interrupt handler]({{site.data.globals.projectgithubroot}}blob/b1965c332ffe64f0f2a26469021742bba5feeb56/src/firmware/nucleo/usartbringup/Core/Src/stm32l4xx_it.c#L72-L75). Since I'm a profound neophyte with this platform, I'm sure that there's a good reason this wasn't auto-generated, but it beats the heck out of me what it is--it looks like the sort of toil-based code that the IDE has otherwise been good at generating on its own.
+
+So those are the basics of DMA to USART--or any STM32 peripheral, it seems, [immortalized in this checkin for my Nucleo board]({{site.data.globals.projectgithubroot}}tree/b1965c332ffe64f0f2a26469021742bba5feeb56/src/firmware/nucleo/usartbringup). I didn't do RX because simple RX is trivial and RX to DMA for variable-length payloads has some challenges that I really only want to deal with once. I'll tackle that when I start writing the real firmware.
