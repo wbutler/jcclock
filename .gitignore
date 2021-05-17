@@ -351,3 +351,9 @@ MigrationBackup/
 
 # Debug params from STM32CubeIDE
 *.launch
+
+# Ruby Gemfile lock
+**/Gemfile.lock
+
+# Git merge artifacts
+*.orig

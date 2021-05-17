@@ -5,7 +5,7 @@ date:   2021-04-29 21:14:00 -0700
 categories:
 permalink: /2021-04-29-it-blinks/
 ---
-{% include image.html file="nucleoblink.gif" caption="Hello world!" float="right" %}With a moderate and totally reasonable amount of hassle, I was able to get a blinking LED running on my Nucleo board! I have brought up a microcontroller development environment up from scratch three times; the other two were firmly in the realm of epic trainwreck that made me strongly consider abandoning the project. This was substantially better and I feel like I've made a reasonable choice on MCU platform.
+{% include image-float.html file="nucleoblink.gif" caption="Hello world!" float="right" %}With a moderate and totally reasonable amount of hassle, I was able to get a blinking LED running on my Nucleo board! I have brought up a microcontroller development environment up from scratch three times; the other two were firmly in the realm of epic trainwreck that made me strongly consider abandoning the project. This was substantially better and I feel like I've made a reasonable choice on MCU platform.
 
 ### STM32 First Impressions
 
