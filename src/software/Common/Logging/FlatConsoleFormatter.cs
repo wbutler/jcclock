@@ -46,7 +46,14 @@ namespace JCClock.Common.Logging
                 return;
             }
 
-            textWriter.WriteLine(message);
+            if (logEntry.Exception == null)
+            {
+                textWriter.WriteLine(message);
+            }
+            else
+            {
+                textWriter.WriteLine(message + " " + logEntry.Exception.ToString());
+            }
         }
     }
 }
