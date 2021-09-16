@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LayoutGenerator": {
+      "commandName": "Project",
+      "commandLineArgs": "-i C:\\Users\\Will\\source\\repos\\jcclock\\src\\software\\PhraseGenerator\\bin\\Debug\\net5.0\\phrases.json"
+    }
+  }
+}

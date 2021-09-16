@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Common", "Common\Common.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PhraseGenerator", "PhraseGenerator\PhraseGenerator.csproj", "{CD65EB4A-ABF0-48EE-B0FE-B58E723658BA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LayoutGenerator", "LayoutGenerator\LayoutGenerator.csproj", "{71B3515A-692B-4CEE-8E08-C12E3B71149B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{CD65EB4A-ABF0-48EE-B0FE-B58E723658BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD65EB4A-ABF0-48EE-B0FE-B58E723658BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD65EB4A-ABF0-48EE-B0FE-B58E723658BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71B3515A-692B-4CEE-8E08-C12E3B71149B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71B3515A-692B-4CEE-8E08-C12E3B71149B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71B3515A-692B-4CEE-8E08-C12E3B71149B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71B3515A-692B-4CEE-8E08-C12E3B71149B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

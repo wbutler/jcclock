@@ -32,7 +32,7 @@ namespace JCClock.PhraseGenerator
                     {
                         if(!File.Exists(config.CustomPhraseFile))
                         {
-                            throw new ArgumentException("The file {0} does not exist.", config.CustomPhraseFile);
+                            throw new ArgumentException(String.Format("The file {0} does not exist.", config.CustomPhraseFile));
                         }
 
                         outputCollection.SpecialPhrases.AddRange(
