@@ -21,7 +21,7 @@ namespace JCClock.LayoutGenerator
         /// </summary>
         public class DefaultValues
         {
-            public const string InputPath = @".\phrases.json";
+            public const string InputPath = "phrases.json";
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 using Microsoft.Extensions.Logging;
@@ -62,9 +64,102 @@ namespace JCClock.LayoutGenerator
             return new Layout(source, elements.Length, elements[0].Length);
         }
 
-        /// <summary>
-        /// Writes a pretty-print version of the layout to the provided ILogger.
-        /// </summary>
+        public static Layout GetEmpty(int width, int height)
+        {
+            string row = new string(LayoutConstants.EmptyChar, width);
+            StringBuilder resultBuilder = new StringBuilder();
+            for (int i = 0; i < height; i++)
+            {
+                resultBuilder.Append(row);
+                if (i != height - 1)
+                {
+                    resultBuilder.Append(LayoutConstants.RowDelimiter);
+                }
+            }
+            return Layout.Parse(resultBuilder.ToString());
+        }
+
+        public bool CanFit(string word, int index)
+        {
+            if (word == null)
+            {
+                //FIXFIXFIX
+                return false;
+            }
+
+            if (SpaceLeftInRow(index) >= word.Length)
+            {
+                return true;
+            }
+
+            return (!IsOnLastRow(index)) && Columns >= word.Length;
+        }
+
+        public int SpaceLeftInRow(int index)
+        {
+            int result = 0;
+            try
+            {
+                while (index + result < LayoutBuffer.Length && LayoutBuffer[index + result] != LayoutConstants.RowDelimiter)
+                {
+                    result++;
+                }
+            }
+            catch
+            {
+                //FIXFIXFIX
+                throw;
+            }
+            return result;
+        }
+
+        public bool IsOnLastRow(int index)
+        {
+            while (index < LayoutBuffer.Length && LayoutBuffer[index] != LayoutConstants.RowDelimiter)
+            {
+                index++;
+            }
+
+            return index == LayoutBuffer.Length;
+        }
+
+        public int GetNextRowStart(int index)
+        {
+            int originalIndex = index;
+            while (index < LayoutBuffer.Length && LayoutBuffer[index] != LayoutConstants.RowDelimiter)
+            {
+                index++;
+            }
+
+            if (index == LayoutBuffer.Length)
+            {
+
+                throw new Exception();
+            }
+
+            /*
+            if(LayoutBuffer[index] == LayoutConstants.RowDelimiter)
+            {
+                return index + 1;
+            }*/
+
+            return index + 1;
+        }
+
+        public void InsertWord(string word, int index)
+        {
+            if (SpaceLeftInRow(index) >= word.Length)
+            {
+                int replacementLength = word.Length;
+                LayoutBuffer = LayoutBuffer.Remove(index, replacementLength).Insert(index, word);
+            }
+            else
+            {
+                throw new ArgumentException(String.Format("Not enough room in row at index {0} for {1}.", index, word));
+            }
+        }        /// <summary>
+                 /// Writes a pretty-print version of the layout to the provided ILogger.
+                 /// </summary>
         public void Print(ILogger logger)
         {
             PrintLayoutBuffer(LayoutBuffer, logger);
@@ -148,6 +243,78 @@ namespace JCClock.LayoutGenerator
             }
 
             return new PhraseMatch(phrase, matches);
+        }
+
+        public static LayoutEvaluation Evaluate(Layout layout, IEnumerable<LayoutPhrase> phrases, ILogger logger)
+        {
+            layout.Print(logger);
+            logger.Log("");
+
+            List<PhraseMatch> matches = new List<PhraseMatch>();
+            foreach (LayoutPhrase phrase in phrases)
+            {
+                matches.Add(CheckPhrase(layout, phrase, null));
+                //matches.Add(CheckPhrase(layout, phrase, logger));
+            }
+
+            PhraseMatch[] incompleteMatches = matches.Where(match => !match.IsFullMatch).ToArray();
+
+            HashSet<string> futureUnmatchedWords = new HashSet<string>();
+            Dictionary<string, int> remainingCardinalityPerWord = new Dictionary<string, int>();
+            foreach (PhraseMatch incompleteMatch in incompleteMatches)
+            {
+                foreach (string word in incompleteMatch.FutureUnmatchedWords)
+                {
+                    if (!futureUnmatchedWords.Contains(word))
+                    {
+                        futureUnmatchedWords.Add(word);
+                    }
+                }
+
+                foreach (LayoutPhraseWord word in incompleteMatch.RemainingCardinality)
+                {
+                    if (!remainingCardinalityPerWord.ContainsKey(word.Text))
+                    {
+                        remainingCardinalityPerWord[word.Text] = 0;
+                    }
+                    remainingCardinalityPerWord[word.Text] = Math.Max(remainingCardinalityPerWord[word.Text], word.Cardinality);
+                }
+            }
+
+
+
+            HashSet<string> bestCandidateWords = incompleteMatches.Select(match => match.NextWordToMatch).Distinct().Where(word => !futureUnmatchedWords.Contains(word)).ToHashSet<string>();
+            HashSet<string> secondaryCandidateWords = incompleteMatches.Select(match => match.NextWordToMatch).Distinct().Where(word => futureUnmatchedWords.Contains(word)).ToHashSet<string>();
+
+            // oops, needs to be PER PHRASE.
+            List<LayoutPhraseWord> remainingCardinality = remainingCardinalityPerWord.Keys.Select(word => new LayoutPhraseWord(word, remainingCardinalityPerWord[word])).ToList();
+
+            return new LayoutEvaluation(
+                matches.Sum(match => match.Quality),
+                matches.Count,
+                matches,
+                bestCandidateWords,
+                secondaryCandidateWords,
+                remainingCardinality);
+        }
+
+        private static PhraseMatch CheckPhrase(Layout layout, LayoutPhrase phrase, ILogger logger)
+        {
+            PhraseMatch result = layout.Evaluate(phrase);
+            logger?.Log("Evaluate phrase: {0}", phrase.Text);
+            logger?.Log("Match quality: {0}", result.Quality);
+            logger?.Log("First word missing: {0}", result.NextWordToMatch);
+            logger?.Log("Remaining word cardinality:");
+            if (logger != null)
+            {
+                foreach (LayoutPhraseWord word in result.RemainingCardinality)
+                {
+                    logger.Log("{0}, {1}", word.Text, word.Cardinality);
+                }
+                layout.PrintMatches(result.WordMatches, logger);
+            }
+            logger?.Log("");
+            return result;
         }
 
         /// <summary>
