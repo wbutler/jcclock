@@ -55,7 +55,7 @@ namespace JCClock.PhraseGenerator
         {
             public const TimeMappingStrategy MappingStrategy = TimeMappingStrategy.Nearest;
             public const int MinuteGranularity = 5;
-            public readonly string OutputPath = Path.Combine(".", "phrases.json");
+            public const string OutputPath = "phrases.json";
         }
 
         /// <summary>
