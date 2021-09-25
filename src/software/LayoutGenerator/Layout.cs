@@ -162,7 +162,10 @@ namespace JCClock.LayoutGenerator
                  /// </summary>
         public void Print(ILogger logger)
         {
-            PrintLayoutBuffer(LayoutBuffer, logger);
+            if (logger != null)
+            {
+                PrintLayoutBuffer(LayoutBuffer, logger);
+            }
         }
 
         /// <summary>
@@ -248,7 +251,7 @@ namespace JCClock.LayoutGenerator
         public static LayoutEvaluation Evaluate(Layout layout, IEnumerable<LayoutPhrase> phrases, ILogger logger)
         {
             layout.Print(logger);
-            logger.Log("");
+            logger?.Log("");
 
             List<PhraseMatch> matches = new List<PhraseMatch>();
             foreach (LayoutPhrase phrase in phrases)

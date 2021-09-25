@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +9,7 @@ using Newtonsoft.Json;
 
 using JCClock.Common;
 using JCClock.Common.Logging;
+using JCClock.LayoutGenerator.Engines;
 
 namespace JCClock.LayoutGenerator
 {
@@ -51,19 +53,43 @@ namespace JCClock.LayoutGenerator
                         phrases.Add(LayoutPhrase.Parse(phrase));
                     }
 
-                    // Generate a test layout to exercise the evaluation function.
-                    Layout testLayout = Layout.Parse("ITAISAAA|FIVEAAAA|AAATENAA|AAAAAAAA");
-                    testLayout.Print(logger);
-
-                    // For each of the input phrases, show how it or the best possible fraction of it
-                    // would be rendered on our test layout.
-                    foreach(LayoutPhrase phrase in phrases)
+                    (int width, int height) = FindMinimumFrameSize(phrases, logger);
+                    int longestWordLength = phrases.SelectMany(phrase => phrase.Words).Select(word => word.Length).Max();
+                    if(longestWordLength > width)
                     {
-                        PhraseMatch phraseMatch = testLayout.Evaluate(phrase);
-                        logger.Log("");
-                        logger.Log("Best match for {0}:", phrase.Text);
-                        logger.Log("Quality: {0:0.000}", phraseMatch.Quality);
-                        testLayout.PrintMatches(phraseMatch.WordMatches, logger);
+                        logger.Log("Longest word in input has {0} characters. Setting this value as minimum frame width.", longestWordLength);
+                        width = longestWordLength;
+                    }
+
+                    ILayoutEngine layoutEngine = new BinpackLayoutEngine();
+                    IEnumerable<Layout> layouts = new List<Layout>();
+                    while (layouts.Count() == 0)
+                    {
+                        double aspectRatio = (double)width / (double)height;
+                        logger.Log("Attempting layout {0} wide by {1} high with {2} characters.", width, height, width * height);
+                        logger.Log("Frame has aspect ratio {0:0.00} vs target {1:0.00}", aspectRatio, Constants.PreferredWidthHeightRatio);
+
+                        layouts = layoutEngine.AttemptLayout(width, height, phrases, logger);
+                        logger.Log("Found {0} valid layouts at this size.", layouts.Count());
+                        if (layouts.Count() > 0)
+                        {
+                            foreach (Layout layout in layouts)
+                            {
+                                layout.Print(logger);
+                                logger.Log("");
+                            }
+                        }
+                        else
+                        {
+                            if(aspectRatio <= Constants.PreferredWidthHeightRatio)
+                            {
+                                width++;
+                            }
+                            else
+                            {
+                                height++;
+                            }
+                        }
                     }
                 }
 
@@ -76,6 +102,50 @@ namespace JCClock.LayoutGenerator
                     logger.LogError(ex, "Global Exception.");
                 }
             }
+        }
+
+        private static (int, int) FindMinimumFrameSize(IEnumerable<LayoutPhrase> phrases, ILogger logger = null)
+        {
+            int width, height;
+
+            Dictionary<string, int> wordCardinalities = new Dictionary<string, int>();
+            foreach (LayoutPhrase phrase in phrases)
+            {
+                foreach (LayoutPhraseWord word in phrase.LayoutWords)
+                {
+                    if (!wordCardinalities.ContainsKey(word.Text))
+                    {
+                        wordCardinalities[word.Text] = 0;
+                    }
+                    wordCardinalities[word.Text] = Math.Max(wordCardinalities[word.Text], word.Cardinality);
+                }
+            }
+
+            logger?.Log("Phrases contain {0} distinct words, {1} with cardinality > 1.",
+                wordCardinalities.Keys.Count, wordCardinalities.Values.Where(value => value > 1).Count());
+            int minimumChars = wordCardinalities.Keys.Sum(word => word.Length * wordCardinalities[word]);
+            logger?.Log("Solution contains no fewer than {0} characters.", minimumChars);
+
+            foreach (string word in wordCardinalities.Keys)
+            {
+                logger?.Log("{0}, {1}", word, wordCardinalities[word]);
+            }
+
+            height = Convert.ToInt32(Math.Floor(Math.Sqrt(minimumChars / Constants.PreferredWidthHeightRatio)));
+            width = Convert.ToInt32(Math.Floor(height * Constants.PreferredWidthHeightRatio));
+            while (height * width < minimumChars)
+            {
+                if ((double)width / (double)height < Constants.PreferredWidthHeightRatio)
+                {
+                    width++;
+                }
+                else
+                {
+                    height++;
+                }
+            }
+
+            return (width, height);
         }
     }
 }
