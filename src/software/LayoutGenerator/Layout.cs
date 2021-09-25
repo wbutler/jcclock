@@ -201,6 +201,5 @@ namespace JCClock.LayoutGenerator
 
             return index;
         }
-
     }
 }

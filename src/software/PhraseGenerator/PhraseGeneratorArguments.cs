@@ -1,4 +1,6 @@
-﻿using CommandLine;
+﻿using System.IO;
+
+using CommandLine;
 
 using JCClock.Common;
 
@@ -53,7 +55,7 @@ namespace JCClock.PhraseGenerator
         {
             public const TimeMappingStrategy MappingStrategy = TimeMappingStrategy.Nearest;
             public const int MinuteGranularity = 5;
-            public const string OutputPath = @".\phrases.json";
+            public readonly string OutputPath = Path.Combine(".", "phrases.json");
         }
 
         /// <summary>
