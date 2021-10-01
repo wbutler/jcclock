@@ -15,7 +15,7 @@ namespace JCClock.Common.Logging
                     .AddConsole(options =>
                     {
                         options.FormatterName = FlatConsoleFormatter.FormatterName;
-                        options.LogToStandardErrorThreshold = LogLevel.Trace;
+                        options.LogToStandardErrorThreshold = LogLevel.Error;
                     })
                     .AddConsoleFormatter<FlatConsoleFormatter, FlatConsoleFormatterOptions>(options =>
                     {
