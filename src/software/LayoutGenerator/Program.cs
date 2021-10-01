@@ -61,7 +61,8 @@ namespace JCClock.LayoutGenerator
                         width = longestWordLength;
                     }
 
-                    ILayoutEngine layoutEngine = new BinpackLayoutEngine();
+                    DateTime startTime = DateTime.Now;
+                    ILayoutEngine layoutEngine = new BinpackLayoutEngine(true);
                     IEnumerable<Layout> layouts = new List<Layout>();
                     while (layouts.Count() == 0)
                     {
@@ -91,6 +92,7 @@ namespace JCClock.LayoutGenerator
                             }
                         }
                     }
+                    logger.Log("Computed solutions in {0}.", DateTime.Now.Subtract(startTime));
                 }
 
                 // We hit this and do nothing (exit cleanly) if we failed to parse our command-line args.

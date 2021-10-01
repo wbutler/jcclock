@@ -113,6 +113,28 @@ namespace JCClock.LayoutGenerator
             return result;
         }
 
+        public int SpaceAfterIndex(int index)
+        {
+            int result = 0;
+            try
+            {
+                while (index < LayoutBuffer.Length)
+                {
+                    if (LayoutBuffer[index] != LayoutConstants.RowDelimiter)
+                    {
+                        result++;
+                    }
+                    index++;
+                }
+            }
+            catch
+            {
+                //FIXFIXFIX
+                throw;
+            }
+            return result;
+        }
+
         public bool IsOnLastRow(int index)
         {
             while (index < LayoutBuffer.Length && LayoutBuffer[index] != LayoutConstants.RowDelimiter)
@@ -121,6 +143,18 @@ namespace JCClock.LayoutGenerator
             }
 
             return index == LayoutBuffer.Length;
+        }
+
+        public bool IsEmpty()
+        {
+            foreach(char c in LayoutBuffer)
+            {
+                if(c != LayoutConstants.RowDelimiter && c != LayoutConstants.EmptyChar)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public int GetNextRowStart(int index)

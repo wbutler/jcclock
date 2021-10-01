@@ -14,15 +14,25 @@ namespace JCClock.LayoutGenerator.Engines
 {
     public class BinpackLayoutEngine : ILayoutEngine
     {
+        private Dictionary<string, string> layoutGenealogy;
+
+        private bool showGenealogy;
+
+        public BinpackLayoutEngine(bool showGenealogy)
+        {
+            this.showGenealogy = showGenealogy;
+        }
+
         public IEnumerable<Layout> AttemptLayout(int width, int height, IEnumerable<LayoutPhrase> phrases, ILogger logger)
         {
+            layoutGenealogy = new Dictionary<string, string>();
             Stack<LayoutOption> options = new Stack<LayoutOption>();
             List<Layout> solutions = new List<Layout>();
             Layout emptyLayout = Layout.GetEmpty(width, height);
             
             foreach(string firstWord in phrases.Select(phrase => phrase.LayoutWords.First().Text).Distinct())
             {
-                options.Push(new LayoutOption(emptyLayout, 0, firstWord));
+                options.Push(new LayoutOption(emptyLayout.ToString(), 0, firstWord));
             }
 
             while (options.Count != 0)
@@ -37,24 +47,30 @@ namespace JCClock.LayoutGenerator.Engines
                 IEnumerable<string> primeCandidateWords = null;
                 IEnumerable<string> secondaryCandidateWords = null;
 
-                if(!InsertAndEvaluate(layoutInProgress, nextWord, ref currentIndex, phrases, out evaluation, out primeCandidateWords, out secondaryCandidateWords, logger))
+                string originalLayout = layoutInProgress.ToString();
+                if (!InsertAndEvaluate(layoutInProgress, nextWord, ref currentIndex, phrases, out evaluation, out primeCandidateWords, out secondaryCandidateWords, logger))
                 {
                     // Can't insert word; abandon.
                     continue;
                 }
+                //FIXFIXFIX put in InsertAndEvaluate
+                layoutGenealogy[layoutInProgress.ToString()] = originalLayout;
+
 
                 // Continue packing while we have obviously good choices AND at least one can fit.
-                while(primeCandidateWords.Where(word => !String.IsNullOrEmpty(word) && layoutInProgress.CanFit(word, currentIndex)).Count() != 0)
+                while (primeCandidateWords.Where(word => !String.IsNullOrEmpty(word) && layoutInProgress.CanFit(word, currentIndex)).Count() != 0)
                 {
                     IEnumerable<string> wordsThatCanFitOnCurrentRow = primeCandidateWords.Where(word => !String.IsNullOrEmpty(word) && layoutInProgress.SpaceLeftInRow(currentIndex) >= word.Length);
                     if(wordsThatCanFitOnCurrentRow.Count() != 0)
                     {
                         nextWord = wordsThatCanFitOnCurrentRow.OrderByDescending(word => word.Length).First();
+                        originalLayout = layoutInProgress.ToString();
                         if(!InsertAndEvaluate(layoutInProgress, nextWord, ref currentIndex, phrases, out evaluation, out primeCandidateWords, out secondaryCandidateWords, logger))
                         {
                             //TODO better handling.
                             throw new Exception("This should never happen.");
                         }
+                        layoutGenealogy[layoutInProgress.ToString()] = originalLayout;
                     }
                     else
                     {
@@ -65,13 +81,30 @@ namespace JCClock.LayoutGenerator.Engines
                     }
                 }
 
-                logger?.Log("Prime words exhausted.");
+                //
+                //
+                // NEVER INSERT EMPTY SPACES ALONE
+                //
+                //
 
+                if (primeCandidateWords.Count() == 0)
+                {
+                    logger?.Log("Prime words exhausted.");
+                }
+                
+                int spaceLeft = layoutInProgress.SpaceAfterIndex(currentIndex);
+                int remainingChars = evaluation.RemainingCharacters;
+                if(remainingChars > spaceLeft)
+                {
+                    logger?.Log("{0} chars remaining for placement, but {1} positions left in layout. Abandoning.", remainingChars, spaceLeft);
+                    continue;
+                }                
 
                 if (evaluation.Quality == evaluation.TargetQuality)
                 {
                     logger?.Log("Solution found!");
                     layoutInProgress.Print(logger);
+                    logger?.Log("");
                     solutions.Add(layoutInProgress);
                 }
                 else
@@ -86,17 +119,48 @@ namespace JCClock.LayoutGenerator.Engines
                     logger?.Log("Queueing best options: " + String.Join(" ", bestOptions));
                     foreach (string word in bestOptions)
                     {
-                        options.Push(new LayoutOption(Layout.Parse(layoutInProgress.ToString()), currentIndex, word));
+                        options.Push(new LayoutOption(layoutInProgress.ToString(), currentIndex, word));
                     }
                 }
             }
 
-            if(solutions.Count == 0)
+            if(solutions.Count != 0)
+            {
+                if (showGenealogy)
+                {
+                    logger?.Log("\nBEGIN SOLUTION GENEALOGY\n");
+
+                    int i = 0;
+                    foreach (Layout solutionLayout in solutions)
+                    {
+                        logger?.Log("\nSOLUTION {0}\n", i);
+                        PrintSolutionGenealogy(solutionLayout, logger);
+                        i++;
+                    }
+                }
+            }
+            else
             {
                 logger?.Log("No solutions found.");
             }
 
             return solutions;
+        }
+
+        private void PrintSolutionGenealogy(Layout layout, ILogger logger)
+        {
+            if (logger != null)
+            {
+                int generation = 0;
+                while (!layout.IsEmpty())
+                {
+                    logger.Log("Generation {0}", generation);
+                    layout.Print(logger);
+                    logger.Log("");
+                    generation++;
+                    layout = Layout.Parse(layoutGenealogy[layout.ToString()]);
+                }
+            }
         }
 
         private bool InsertAndEvaluate(Layout layout, string word, ref int index, IEnumerable<LayoutPhrase> phrases, out LayoutEvaluation evaluation, out IEnumerable<string> paddedPrimeWords, out IEnumerable<string> paddedSecondaryWords, ILogger logger = null)

@@ -44,6 +44,19 @@ namespace JCClock.LayoutGenerator
             private set;
         }
 
+        public int RemainingCharacters
+        {
+            get
+            {
+                int result = 0;
+                foreach(LayoutPhraseWord word in RemainingCardinality)
+                {
+                    result += word.Text.Length * word.Cardinality;
+                }
+                return result;
+            }
+        }
+
         public LayoutEvaluation
             (
             double quality,

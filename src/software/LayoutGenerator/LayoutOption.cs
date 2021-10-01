@@ -4,8 +4,10 @@
     {
         public Layout PartialLayout
         {
-            get;
-            private set;
+            get
+            {
+                return Layout.Parse(layoutBuffer);
+            }
         }
 
         public int Index
@@ -20,9 +22,11 @@
             private set;
         }
 
-        public LayoutOption(Layout partialLayout, int index, string nextWord)
+        private string layoutBuffer;
+
+        public LayoutOption(string layout, int index, string nextWord)
         {
-            PartialLayout = partialLayout;
+            layoutBuffer = layout;
             Index = index;
             NextWord = nextWord;
         }
